@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,7 +29,6 @@ export default function UploadPage() {
   const [extracted, setExtracted] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
@@ -114,6 +113,20 @@ export default function UploadPage() {
     }
   };
 
+  const handleReset = () => {
+    setSelectedFile(null);
+    setSuccess(false);
+    setExtracted(false);
+    setClientName("");
+    setClientEmail("");
+    setConcept("");
+    setAmount("");
+    setQuoteNumber("");
+    setQuoteDate("");
+    setPaymentStatus("Pagado");
+    setError("");
+  };
+
   return (
     <div className="space-y-6 max-w-lg mx-auto">
       <div>
@@ -123,16 +136,12 @@ export default function UploadPage() {
         </p>
       </div>
 
-      {success ? (
-        <Card>
+      <Card>
+        {success ? (
           <CardContent className="pt-6 text-center space-y-4">
             <p className="text-green-600 font-medium text-lg">Presupuesto guardado correctamente</p>
             <div className="flex gap-3 justify-center">
-              <Button variant="outline" onClick={() => {
-                setSelectedFile(null); setSuccess(false); setExtracted(false);
-                setClientName(""); setClientEmail(""); setConcept(""); setAmount("");
-                setQuoteNumber(""); setQuoteDate(""); setPaymentStatus("Pagado");
-              }}>
+              <Button variant="outline" onClick={handleReset}>
                 Subir otro
               </Button>
               <a href="/" className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
@@ -140,190 +149,189 @@ export default function UploadPage() {
               </a>
             </div>
           </CardContent>
-        </Card>
-      ) : (
-      <Card>
-        <CardHeader>
-          <CardTitle>Datos del presupuesto</CardTitle>
-          <CardDescription>
-            Revisa y edita la información extraída antes de guardar
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="pdf">Archivo PDF</Label>
-              <Input
-                ref={fileInputRef}
-                id="pdf"
-                name="pdf"
-                type="file"
-                accept=".pdf,application/pdf"
-                required
-                onChange={handleFileChange}
-                className="file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:bg-primary file:text-primary-foreground file:text-sm file:font-medium"
-              />
-              {parsing && (
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Sparkles className="h-3 w-3 animate-pulse" />
-                  Extrayendo datos del PDF...
-                </p>
-              )}
-              {selectedFile && !parsing && extracted && (
-                <p className="text-xs text-green-600 flex items-center gap-1">
-                  <FileText className="h-3 w-3" />
-                  Datos extraídos automáticamente ✓
-                </p>
-              )}
-              {error && (
-                <p className="text-xs text-amber-600 flex items-center gap-1">
-                  <AlertCircle className="h-3 w-3" />
-                  {error}
-                </p>
-              )}
-            </div>
-
-            <Separator />
-
-            <div className="space-y-2">
-              <Label htmlFor="client_name">
-                Cliente {extracted ? <span className="text-xs text-green-600">(extraído)</span> : ""}
-              </Label>
-              <Input
-                id="client_name"
-                name="client_name"
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-                placeholder="Nombre del cliente"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="client_email">Email del cliente</Label>
-              <Input
-                id="client_email"
-                name="client_email"
-                type="email"
-                value={clientEmail}
-                onChange={(e) => setClientEmail(e.target.value)}
-                placeholder="cliente@email.com"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="concept">Concepto</Label>
-              <Textarea
-                id="concept"
-                name="concept"
-                value={concept}
-                onChange={(e) => setConcept(e.target.value)}
-                placeholder="Describe el servicio o producto"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="amount">Importe (€)</Label>
-              <Input
-                id="amount"
-                name="amount"
-                type="number"
-                step="0.01"
-                min="0"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0.00"
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="quote_number">
-                  Nº Presupuesto {extracted ? <span className="text-xs text-green-600">(extraído)</span> : ""}
-                </Label>
-                <Input
-                  id="quote_number"
-                  name="quote_number"
-                  value={quoteNumber}
-                  onChange={(e) => setQuoteNumber(e.target.value)}
-                  placeholder="Ej: 26062801"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="quote_date">
-                  Fecha {extracted ? <span className="text-xs text-green-600">(extraído)</span> : ""}
-                </Label>
-                <Input
-                  id="quote_date"
-                  name="quote_date"
-                  value={quoteDate}
-                  onChange={(e) => setQuoteDate(e.target.value)}
-                  placeholder="DD/MM/AAAA"
-                />
-              </div>
-            </div>
-
-            <Separator />
-
-            <div className="space-y-2">
-              <Label>Estado de pago</Label>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="payment_status"
-                    value="Pagado"
-                    checked={paymentStatus === "Pagado"}
-                    onChange={(e) => setPaymentStatus(e.target.value)}
-                    className="accent-primary"
+        ) : (
+          <>
+            <CardHeader>
+              <CardTitle>Datos del presupuesto</CardTitle>
+              <CardDescription>
+                Revisa y edita la información extraída antes de guardar
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="pdf">Archivo PDF</Label>
+                  <Input
+                    id="pdf"
+                    name="pdf"
+                    type="file"
+                    accept=".pdf,application/pdf"
+                    required
+                    onChange={handleFileChange}
+                    className="file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:bg-primary file:text-primary-foreground file:text-sm file:font-medium"
                   />
-                  <span className="text-sm">Pagado</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="payment_status"
-                    value="Pendiente"
-                    checked={paymentStatus === "Pendiente"}
-                    onChange={(e) => setPaymentStatus(e.target.value)}
-                    className="accent-primary"
-                  />
-                  <span className="text-sm">Pendiente (total)</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="payment_status"
-                    value="Parcial"
-                    checked={paymentStatus === "Parcial"}
-                    onChange={(e) => setPaymentStatus(e.target.value)}
-                    className="accent-primary"
-                  />
-                  <span className="text-sm">Parcial</span>
-                </label>
-              </div>
-            </div>
+                  {parsing && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Sparkles className="h-3 w-3 animate-pulse" />
+                      Extrayendo datos del PDF...
+                    </p>
+                  )}
+                  {selectedFile && !parsing && extracted && (
+                    <p className="text-xs text-green-600 flex items-center gap-1">
+                      <FileText className="h-3 w-3" />
+                      Datos extraídos automáticamente ✓
+                    </p>
+                  )}
+                  {error && (
+                    <p className="text-xs text-amber-600 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {error}
+                    </p>
+                  )}
+                </div>
 
-            {paymentStatus === "Parcial" && (
-              <div className="space-y-2">
-                <Label htmlFor="paid_amount">Cantidad cobrada (€)</Label>
-                <Input id="paid_amount" name="paid_amount" type="number" step="0.01" min="0" placeholder="0.00" required />
-              </div>
-            )}
+                <Separator />
 
-            <Button type="submit" className="w-full" disabled={!selectedFile || parsing || submitting}>
-              {submitting ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Guardando...</>
-              ) : (
-                <><Upload className="h-4 w-4 mr-2" />Guardar presupuesto</>
-              )}
-            </Button>
-          </form>
-        </CardContent>
+                <div className="space-y-2">
+                  <Label htmlFor="client_name">
+                    Cliente {extracted ? <span className="text-xs text-green-600">(extraído)</span> : ""}
+                  </Label>
+                  <Input
+                    id="client_name"
+                    name="client_name"
+                    value={clientName}
+                    onChange={(e) => setClientName(e.target.value)}
+                    placeholder="Nombre del cliente"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="client_email">Email del cliente</Label>
+                  <Input
+                    id="client_email"
+                    name="client_email"
+                    type="email"
+                    value={clientEmail}
+                    onChange={(e) => setClientEmail(e.target.value)}
+                    placeholder="cliente@email.com"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="concept">Concepto</Label>
+                  <Textarea
+                    id="concept"
+                    name="concept"
+                    value={concept}
+                    onChange={(e) => setConcept(e.target.value)}
+                    placeholder="Describe el servicio o producto"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="amount">Importe (€)</Label>
+                  <Input
+                    id="amount"
+                    name="amount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="0.00"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="quote_number">
+                      Nº Presupuesto {extracted ? <span className="text-xs text-green-600">(extraído)</span> : ""}
+                    </Label>
+                    <Input
+                      id="quote_number"
+                      name="quote_number"
+                      value={quoteNumber}
+                      onChange={(e) => setQuoteNumber(e.target.value)}
+                      placeholder="Ej: 26062801"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="quote_date">
+                      Fecha {extracted ? <span className="text-xs text-green-600">(extraído)</span> : ""}
+                    </Label>
+                    <Input
+                      id="quote_date"
+                      name="quote_date"
+                      value={quoteDate}
+                      onChange={(e) => setQuoteDate(e.target.value)}
+                      placeholder="DD/MM/AAAA"
+                    />
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-2">
+                  <Label>Estado de pago</Label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="payment_status"
+                        value="Pagado"
+                        checked={paymentStatus === "Pagado"}
+                        onChange={(e) => setPaymentStatus(e.target.value)}
+                        className="accent-primary"
+                      />
+                      <span className="text-sm">Pagado</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="payment_status"
+                        value="Pendiente"
+                        checked={paymentStatus === "Pendiente"}
+                        onChange={(e) => setPaymentStatus(e.target.value)}
+                        className="accent-primary"
+                      />
+                      <span className="text-sm">Pendiente (total)</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="payment_status"
+                        value="Parcial"
+                        checked={paymentStatus === "Parcial"}
+                        onChange={(e) => setPaymentStatus(e.target.value)}
+                        className="accent-primary"
+                      />
+                      <span className="text-sm">Parcial</span>
+                    </label>
+                  </div>
+                </div>
+
+                {paymentStatus === "Parcial" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="paid_amount">Cantidad cobrada (€)</Label>
+                    <Input id="paid_amount" name="paid_amount" type="number" step="0.01" min="0" placeholder="0.00" required />
+                  </div>
+                )}
+
+                <Button type="submit" className="w-full" disabled={!selectedFile || parsing || submitting}>
+                  {submitting ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Guardando...</>
+                  ) : (
+                    <><Upload className="h-4 w-4 mr-2" />Guardar presupuesto</>
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </>
+        )}
       </Card>
-      )}
     </div>
   );
 }
