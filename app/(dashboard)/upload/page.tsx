@@ -35,27 +35,62 @@ export default function UploadPage() {
     if (!file) return;
 
     setParsing(true);
+
+    // Try client-side extraction first (works for text-based PDFs)
+    let foundName = "", foundEmail = "", foundConcept = "", foundAmount = "";
     try {
-      // Send PDF to server for text extraction
-      const fd = new FormData();
-      fd.append("pdf", file);
+      const text = await file.text();
+      if (text.length > 50) {
+        const clientSection = text.match(/DATOS\s+DEL\s+CLIENTE\s*([\s\S]*?)(?:Tel\.|Email|NIF|CIF|\||$)/i);
+        if (clientSection) {
+          foundName = clientSection[1].replace(/\n/g, " ").replace(/\s+/g, " ").trim().substring(0, 100);
+        } else {
+          const labelMatch = text.match(/(?:Cliente:|Nombre:|Empresa:)\s*(.+)/i);
+          if (labelMatch) foundName = labelMatch[1].trim().substring(0, 100);
+        }
 
-      const res = await fetch("/api/extract-pdf", {
-        method: "POST",
-        body: fd,
-      });
+        const emailMatch = text.match(/([\w@.+\-]+@[\w.\-]+\.[a-z]{2,})/i);
+        if (emailMatch) foundEmail = emailMatch[1].trim();
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.client_name) setClientName(data.client_name);
-        if (data.client_email) setClientEmail(data.client_email);
-        if (data.concept) setConcept(data.concept);
-        if (data.amount) setAmount(data.amount);
-        setExtracted(true);
+        const descMatch = text.match(/DESCRIPCI[ÓO]N:\s*([\s\S]*?)(?:Concepto|Ud\.|SUB-TOTAL|TOTAL)/i);
+        if (descMatch) {
+          foundConcept = descMatch[1].replace(/\n/g, " ").replace(/\s+/g, " ").trim().substring(0, 200);
+        }
+
+        const totalMatch = text.match(/^\s*TOTAL\s*[:.]?\s*([\d.,]+)/im);
+        if (totalMatch) {
+          const num = parseFloat(totalMatch[1].replace(/\./g, "").replace(",", "."));
+          if (!isNaN(num) && num > 0) foundAmount = num.toString();
+        }
       }
     } catch {
-      // Server extraction failed, fields stay empty for manual input
+      // client-side extraction failed
     }
+
+    // Try server-side extraction if client-side got nothing
+    if (!foundName && !foundAmount) {
+      try {
+        const fd = new FormData();
+        fd.append("pdf", file);
+        const res = await fetch("/api/extract-pdf", { method: "POST", body: fd });
+        if (res.ok) {
+          const data = await res.json();
+          foundName = data.client_name || foundName;
+          foundEmail = data.client_email || foundEmail;
+          foundConcept = data.concept || foundConcept;
+          foundAmount = data.amount || foundAmount;
+        }
+      } catch {
+        // server extraction also failed
+      }
+    }
+
+    if (foundName) setClientName(foundName);
+    if (foundEmail) setClientEmail(foundEmail);
+    if (foundConcept) setConcept(foundConcept);
+    if (foundAmount) setAmount(foundAmount);
+    if (foundName || foundAmount) setExtracted(true);
+
     setParsing(false);
   };
 
@@ -91,14 +126,14 @@ export default function UploadPage() {
               {parsing && (
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                   <Sparkles className="h-3 w-3 animate-pulse" />
-                  Extrayendo datos del PDF...
+                  Extrayendo datos del contenido del PDF...
                 </p>
               )}
               {selectedFile && !parsing && (
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                   <FileText className="h-3 w-3" />
                   {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
-                  {extracted && " — datos extraídos del contenido"}
+                  {extracted ? " — datos extraídos ✓" : " — extraer datos automáticamente no disponible, rellena manualmente ↓"}
                 </p>
               )}
             </div>
