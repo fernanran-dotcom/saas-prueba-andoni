@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LayoutDashboard, FileText, Receipt, LogOut, User, Users } from "lucide-react";
+import { LayoutDashboard, FileText, Receipt, LogOut, User, Users, Upload } from "lucide-react";
 
 export default async function DashboardLayout({
   children,
@@ -28,6 +28,7 @@ export default async function DashboardLayout({
     { href: "/quotes", label: "Presupuestos", icon: FileText },
     { href: "/invoices", label: "Facturas", icon: Receipt },
     { href: "/clients", label: "Clientes", icon: Users },
+    { href: "/upload", label: "Subir PDF", icon: Upload },
   ];
 
   return (

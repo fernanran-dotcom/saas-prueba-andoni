@@ -12,7 +12,7 @@ CREATE TABLE clients (
   email TEXT
 );
 
--- 2. Tabla de presupuestos
+-- 2. Tabla de presupuestos (con gestión de pagos y PDF)
 CREATE TABLE quotes (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -20,7 +20,11 @@ CREATE TABLE quotes (
   created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
   concept TEXT NOT NULL,
   amount NUMERIC(10,2) NOT NULL,
-  status TEXT NOT NULL CHECK (status IN ('Borrador', 'Enviado', 'Aceptado', 'Rechazado'))
+  status TEXT NOT NULL CHECK (status IN ('Borrador', 'Enviado', 'Aceptado', 'Rechazado')),
+  payment_status TEXT DEFAULT 'Pendiente' CHECK (payment_status IN ('Pendiente', 'Parcial', 'Pagado')),
+  paid_amount NUMERIC(10,2),
+  file_url TEXT,
+  file_name TEXT
 );
 
 -- 3. Tabla de facturas
@@ -106,3 +110,4 @@ CREATE INDEX idx_quotes_status ON quotes(status);
 CREATE INDEX idx_invoices_user_id ON invoices(user_id);
 CREATE INDEX idx_invoices_client_id ON invoices(client_id);
 CREATE INDEX idx_invoices_status ON invoices(status);
+CREATE INDEX idx_quotes_payment_status ON quotes(payment_status);

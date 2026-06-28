@@ -14,6 +14,10 @@ export type Quote = {
   concept: string;
   amount: number;
   status: "Borrador" | "Enviado" | "Aceptado" | "Rechazado";
+  payment_status: "Pendiente" | "Parcial" | "Pagado";
+  paid_amount: number | null;
+  file_url: string | null;
+  file_name: string | null;
   clients?: { name: string } | null;
 };
 
