@@ -8,29 +8,32 @@ export default async function DashboardPage() {
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id;
+
+  if (!userId) {
+    return <div className="p-6"><p className="text-muted-foreground">No se pudo obtener el usuario.</p></div>
+  }
 
   const [clientsResult, quotesResult] = await Promise.all([
     supabase
       .from("clients")
       .select("*", { count: "exact", head: true })
-      .eq("user_id", user!.id),
+      .eq("user_id", userId),
     supabase
       .from("quotes")
       .select("amount, paid_amount, payment_status")
-      .eq("user_id", user!.id),
+      .eq("user_id", userId),
   ]);
 
   const clientsCount = clientsResult.count ?? 0;
   const allQuotes = quotesResult.data ?? [];
 
-  // Total billing: sum of paid amounts (full for Pagado, partial for Parcial)
   const totalBilled = allQuotes.reduce((sum, q) => {
     if (q.payment_status === "Pagado") return sum + Number(q.amount);
     if (q.payment_status === "Parcial" && q.paid_amount) return sum + Number(q.paid_amount);
     return sum;
   }, 0);
 
-  // Total pending
   const pendingQuotes = allQuotes.filter(
     (q) => q.payment_status === "Pendiente" || q.payment_status === "Parcial"
   );
@@ -41,14 +44,12 @@ export default async function DashboardPage() {
     return sum + Number(q.amount);
   }, 0);
 
-  // Quote count (total created)
   const totalQuotes = allQuotes.length;
 
-  // Pending quotes for the list
   const { data: pendingList } = await supabase
     .from("quotes")
     .select("id, amount, paid_amount, payment_status, concept, clients(name)")
-    .eq("user_id", user!.id)
+    .eq("user_id", userId)
     .in("payment_status", ["Pendiente", "Parcial"])
     .order("created_at", { ascending: false });
 

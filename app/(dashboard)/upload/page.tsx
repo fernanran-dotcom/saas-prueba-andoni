@@ -28,6 +28,7 @@ export default function UploadPage() {
   const [submitting, setSubmitting] = useState(false);
   const [extracted, setExtracted] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -105,7 +106,8 @@ export default function UploadPage() {
         return;
       }
 
-      window.location.href = "/";
+      setSuccess(true);
+      setSubmitting(false);
     } catch {
       setError("Error de conexión al guardar el presupuesto");
       setSubmitting(false);
@@ -121,6 +123,25 @@ export default function UploadPage() {
         </p>
       </div>
 
+      {success ? (
+        <Card>
+          <CardContent className="pt-6 text-center space-y-4">
+            <p className="text-green-600 font-medium text-lg">Presupuesto guardado correctamente</p>
+            <div className="flex gap-3 justify-center">
+              <Button variant="outline" onClick={() => {
+                setSelectedFile(null); setSuccess(false); setExtracted(false);
+                setClientName(""); setClientEmail(""); setConcept(""); setAmount("");
+                setQuoteNumber(""); setQuoteDate(""); setPaymentStatus("Pagado");
+              }}>
+                Subir otro
+              </Button>
+              <a href="/" className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+                Ir al dashboard
+              </a>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
       <Card>
         <CardHeader>
           <CardTitle>Datos del presupuesto</CardTitle>
@@ -302,6 +323,7 @@ export default function UploadPage() {
           </form>
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }
