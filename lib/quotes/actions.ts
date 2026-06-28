@@ -85,8 +85,8 @@ export async function uploadQuotePdf(formData: FormData) {
   const clientName = formData.get("client_name") as string;
   const clientEmail = formData.get("client_email") as string;
 
-  // Create or find client
-  let clientId: string;
+  // Find existing client by email, or create new one
+  let existingClientId: string | null = null;
   if (clientEmail) {
     const { data: existing } = await supabase
       .from("clients")
@@ -95,11 +95,12 @@ export async function uploadQuotePdf(formData: FormData) {
       .eq("email", clientEmail)
       .maybeSingle();
     if (existing) {
-      clientId = existing.id;
+      existingClientId = existing.id;
     }
   }
 
-  if (!clientId!) {
+  let clientId = existingClientId;
+  if (!clientId) {
     const { data: newClient, error: clientError } = await supabase
       .from("clients")
       .insert({ user_id: user.id, name: clientName, email: clientEmail || null })
