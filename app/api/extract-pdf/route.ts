@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     const text = Array.isArray(pdfResult.text) ? pdfResult.text.join("\n") : (pdfResult.text as string);
 
     if (!text || text.trim().length < 10) {
-      return NextResponse.json({ client_name: "", client_email: "", concept: "", amount: "" });
+      return NextResponse.json({ client_name: "", client_email: "", concept: "", amount: "", quote_number: "", quote_date: "" });
     }
 
     const result: Record<string, string> = {
@@ -26,6 +26,8 @@ export async function POST(request: Request) {
       client_email: "",
       concept: "",
       amount: "",
+      quote_number: "",
+      quote_date: "",
     };
 
     // Extract client name between "DATOS DEL CLIENTE" and the line with Tel.
@@ -63,6 +65,18 @@ export async function POST(request: Request) {
           }
         }
       }
+    }
+
+    // Extract quote number
+    const quoteNumMatch = text.match(/(?:PRESUPUESTO\s*N[º°]?|N[º°]\s*Presupuesto)\s*[:.]?\s*(\S+)/i);
+    if (quoteNumMatch) {
+      result.quote_number = quoteNumMatch[1].trim().substring(0, 50);
+    }
+
+    // Extract quote date
+    const dateMatch = text.match(/Fecha\s*[:.]?\s*(\d{1,2}\/\d{1,2}\/\d{2,4})/);
+    if (dateMatch) {
+      result.quote_date = dateMatch[1].trim();
     }
 
     // Extract email

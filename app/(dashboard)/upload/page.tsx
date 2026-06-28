@@ -22,6 +22,8 @@ export default function UploadPage() {
   const [clientEmail, setClientEmail] = useState("");
   const [concept, setConcept] = useState("");
   const [amount, setAmount] = useState("");
+  const [quoteNumber, setQuoteNumber] = useState("");
+  const [quoteDate, setQuoteDate] = useState("");
   const [parsing, setParsing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [extracted, setExtracted] = useState(false);
@@ -59,6 +61,8 @@ export default function UploadPage() {
       if (data.client_email) { setClientEmail(data.client_email); anyData = true; }
       if (data.concept) { setConcept(data.concept); anyData = true; }
       if (data.amount) { setAmount(data.amount); anyData = true; }
+      if (data.quote_number) { setQuoteNumber(data.quote_number); anyData = true; }
+      if (data.quote_date) { setQuoteDate(data.quote_date); anyData = true; }
 
       if (anyData) {
         setExtracted(true);
@@ -84,6 +88,8 @@ export default function UploadPage() {
       fd.append("client_email", clientEmail);
       fd.append("concept", concept);
       fd.append("amount", amount);
+      fd.append("quote_number", quoteNumber);
+      fd.append("quote_date", quoteDate);
       fd.append("payment_status", paymentStatus);
       if (paymentStatus === "Parcial") {
         const paidInput = document.getElementById("paid_amount") as HTMLInputElement;
@@ -209,6 +215,33 @@ export default function UploadPage() {
                 placeholder="0.00"
                 required
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="quote_number">
+                  Nº Presupuesto {extracted ? <span className="text-xs text-green-600">(extraído)</span> : ""}
+                </Label>
+                <Input
+                  id="quote_number"
+                  name="quote_number"
+                  value={quoteNumber}
+                  onChange={(e) => setQuoteNumber(e.target.value)}
+                  placeholder="Ej: 26062801"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="quote_date">
+                  Fecha {extracted ? <span className="text-xs text-green-600">(extraído)</span> : ""}
+                </Label>
+                <Input
+                  id="quote_date"
+                  name="quote_date"
+                  value={quoteDate}
+                  onChange={(e) => setQuoteDate(e.target.value)}
+                  placeholder="DD/MM/AAAA"
+                />
+              </div>
             </div>
 
             <Separator />

@@ -45,6 +45,8 @@ export async function POST(request: Request) {
 
     const concept = formData.get("concept") as string;
     const amount = parseFloat(formData.get("amount") as string);
+    const quoteNumber = formData.get("quote_number") as string | null;
+    const quoteDate = formData.get("quote_date") as string | null;
     const paymentStatus = formData.get("payment_status") as string;
     const paidAmountRaw = formData.get("paid_amount") as string | null;
 
@@ -81,6 +83,8 @@ export async function POST(request: Request) {
       client_id: clientId,
       concept,
       amount,
+      quote_number: quoteNumber || null,
+      quote_date: quoteDate || null,
       status: "Aceptado",
       payment_status: paymentStatus,
       file_url: fileUrl,

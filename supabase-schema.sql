@@ -20,6 +20,8 @@ CREATE TABLE quotes (
   created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
   concept TEXT NOT NULL,
   amount NUMERIC(10,2) NOT NULL,
+  quote_number TEXT,
+  quote_date TEXT,
   status TEXT NOT NULL CHECK (status IN ('Borrador', 'Enviado', 'Aceptado', 'Rechazado')),
   payment_status TEXT DEFAULT 'Pendiente' CHECK (payment_status IN ('Pendiente', 'Parcial', 'Pagado')),
   paid_amount NUMERIC(10,2),

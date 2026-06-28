@@ -5,6 +5,8 @@ ALTER TABLE quotes ADD COLUMN IF NOT EXISTS payment_status TEXT DEFAULT 'Pendien
 ALTER TABLE quotes ADD COLUMN IF NOT EXISTS paid_amount NUMERIC(10,2);
 ALTER TABLE quotes ADD COLUMN IF NOT EXISTS file_url TEXT;
 ALTER TABLE quotes ADD COLUMN IF NOT EXISTS file_name TEXT;
+ALTER TABLE quotes ADD COLUMN IF NOT EXISTS quote_number TEXT;
+ALTER TABLE quotes ADD COLUMN IF NOT EXISTS quote_date TEXT;
 
 -- Bucket para PDFs (crear en Supabase Dashboard > Storage > New Bucket > quote-pdfs > Public)
 -- O ejecutar en SQL Editor (requiere service_role):
