@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+export const runtime = "nodejs";
+
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
@@ -11,13 +13,12 @@ export async function POST(request: Request) {
 
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    let text = "";
-    try {
-      const { PDFParse } = await import("pdf-parse");
-      const parser = new PDFParse({ data: buffer });
-      const data = await parser.getText();
-      text = data.text;
-    } catch {
+    const { PDFParse } = await import("pdf-parse");
+    const parser = new PDFParse({ data: buffer });
+    const data = await parser.getText();
+    const text = data.text;
+
+    if (!text || text.trim().length < 10) {
       return NextResponse.json({ client_name: "", client_email: "", concept: "", amount: "" });
     }
 
@@ -36,12 +37,10 @@ export async function POST(request: Request) {
       const rawName = clientSection[1]
         .replace(/\n/g, " ")
         .replace(/\s+/g, " ")
-        .trim();
-      const nameParts = rawName
-        .split(/\s{2,}|\t/)
-        .filter((p) => p.length > 2 && !/^[\d@]+$/.test(p));
-      if (nameParts.length > 0) {
-        result.client_name = nameParts[0].substring(0, 100);
+        .trim()
+        .substring(0, 100);
+      if (rawName.length > 2) {
+        result.client_name = rawName;
       }
     }
 
@@ -87,19 +86,6 @@ export async function POST(request: Request) {
       }
     }
 
-    // Fallback: first long non-header line
-    if (!result.concept) {
-      for (const line of text.split("\n").map((l) => l.trim()).filter(Boolean)) {
-        if (
-          line.length > 10 &&
-          !/^(factura|presupuesto|nº|fecha|nif|cif|total|base|iva|subtotal)/i.test(line)
-        ) {
-          result.concept = line.substring(0, 200);
-          break;
-        }
-      }
-    }
-
     // Extract total — match "TOTAL" at line start (not column header or SUB-TOTAL)
     const totalMatch = text.match(/^\s*TOTAL\s*[:.]?\s*([\d.,]+)\s*€?/im);
     if (totalMatch) {
@@ -123,7 +109,11 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(result);
-  } catch {
-    return NextResponse.json({ error: "Error al procesar el PDF" }, { status: 500 });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Error desconocido";
+    return NextResponse.json(
+      { error: `Error al procesar el PDF: ${message}` },
+      { status: 500 }
+    );
   }
 }

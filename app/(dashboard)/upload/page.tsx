@@ -14,7 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Upload, FileText, Sparkles } from "lucide-react";
+import { Upload, FileText, Sparkles, AlertCircle } from "lucide-react";
 
 export default function UploadPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -25,72 +25,49 @@ export default function UploadPage() {
   const [amount, setAmount] = useState("");
   const [parsing, setParsing] = useState(false);
   const [extracted, setExtracted] = useState(false);
+  const [error, setError] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
     setSelectedFile(file);
     setExtracted(false);
+    setError("");
 
     if (!file) return;
 
     setParsing(true);
-
-    // Try client-side extraction first (works for text-based PDFs)
-    let foundName = "", foundEmail = "", foundConcept = "", foundAmount = "";
     try {
-      const text = await file.text();
-      if (text.length > 50) {
-        const clientSection = text.match(/DATOS\s+DEL\s+CLIENTE\s*([\s\S]*?)(?:Tel\.|Email|NIF|CIF|\||$)/i);
-        if (clientSection) {
-          foundName = clientSection[1].replace(/\n/g, " ").replace(/\s+/g, " ").trim().substring(0, 100);
-        } else {
-          const labelMatch = text.match(/(?:Cliente:|Nombre:|Empresa:)\s*(.+)/i);
-          if (labelMatch) foundName = labelMatch[1].trim().substring(0, 100);
-        }
+      const fd = new FormData();
+      fd.append("pdf", file);
 
-        const emailMatch = text.match(/([\w@.+\-]+@[\w.\-]+\.[a-z]{2,})/i);
-        if (emailMatch) foundEmail = emailMatch[1].trim();
+      const res = await fetch("/api/extract-pdf", {
+        method: "POST",
+        body: fd,
+      });
 
-        const descMatch = text.match(/DESCRIPCI[ÓO]N:\s*([\s\S]*?)(?:Concepto|Ud\.|SUB-TOTAL|TOTAL)/i);
-        if (descMatch) {
-          foundConcept = descMatch[1].replace(/\n/g, " ").replace(/\s+/g, " ").trim().substring(0, 200);
-        }
+      const data = await res.json();
 
-        const totalMatch = text.match(/^\s*TOTAL\s*[:.]?\s*([\d.,]+)/im);
-        if (totalMatch) {
-          const num = parseFloat(totalMatch[1].replace(/\./g, "").replace(",", "."));
-          if (!isNaN(num) && num > 0) foundAmount = num.toString();
-        }
+      if (!res.ok) {
+        setError(data.error || "Error al extraer datos del PDF");
+        setParsing(false);
+        return;
+      }
+
+      let anyData = false;
+      if (data.client_name) { setClientName(data.client_name); anyData = true; }
+      if (data.client_email) { setClientEmail(data.client_email); anyData = true; }
+      if (data.concept) { setConcept(data.concept); anyData = true; }
+      if (data.amount) { setAmount(data.amount); anyData = true; }
+
+      if (anyData) {
+        setExtracted(true);
+      } else {
+        setError("No se pudieron extraer datos automáticamente. Rellena los campos manualmente.");
       }
     } catch {
-      // client-side extraction failed
+      setError("Error de conexión al extraer datos. Rellena los campos manualmente.");
     }
-
-    // Try server-side extraction if client-side got nothing
-    if (!foundName && !foundAmount) {
-      try {
-        const fd = new FormData();
-        fd.append("pdf", file);
-        const res = await fetch("/api/extract-pdf", { method: "POST", body: fd });
-        if (res.ok) {
-          const data = await res.json();
-          foundName = data.client_name || foundName;
-          foundEmail = data.client_email || foundEmail;
-          foundConcept = data.concept || foundConcept;
-          foundAmount = data.amount || foundAmount;
-        }
-      } catch {
-        // server extraction also failed
-      }
-    }
-
-    if (foundName) setClientName(foundName);
-    if (foundEmail) setClientEmail(foundEmail);
-    if (foundConcept) setConcept(foundConcept);
-    if (foundAmount) setAmount(foundAmount);
-    if (foundName || foundAmount) setExtracted(true);
-
     setParsing(false);
   };
 
@@ -99,15 +76,15 @@ export default function UploadPage() {
       <div>
         <h1 className="text-2xl font-semibold">Subir presupuesto PDF</h1>
         <p className="text-sm text-muted-foreground">
-          Los datos del cliente, concepto e importe se extraen del PDF. Puedes editarlos.
+          Los datos del cliente, concepto e importe se extraen automáticamente del contenido del PDF.
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Datos extraídos del PDF</CardTitle>
+          <CardTitle>Datos del presupuesto</CardTitle>
           <CardDescription>
-            Revisa y edita la información antes de guardar
+            Revisa y edita la información extraída antes de guardar
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -126,14 +103,19 @@ export default function UploadPage() {
               {parsing && (
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                   <Sparkles className="h-3 w-3 animate-pulse" />
-                  Extrayendo datos del contenido del PDF...
+                  Extrayendo datos del PDF...
                 </p>
               )}
-              {selectedFile && !parsing && (
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
+              {selectedFile && !parsing && extracted && (
+                <p className="text-xs text-green-600 flex items-center gap-1">
                   <FileText className="h-3 w-3" />
-                  {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
-                  {extracted ? " — datos extraídos ✓" : " — extraer datos automáticamente no disponible, rellena manualmente ↓"}
+                  Datos extraídos automáticamente ✓
+                </p>
+              )}
+              {error && (
+                <p className="text-xs text-amber-600 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {error}
                 </p>
               )}
             </div>
@@ -141,13 +123,15 @@ export default function UploadPage() {
             <Separator />
 
             <div className="space-y-2">
-              <Label htmlFor="client_name">Cliente</Label>
+              <Label htmlFor="client_name">
+                Cliente {extracted ? <span className="text-xs text-green-600">(extraído)</span> : ""}
+              </Label>
               <Input
                 id="client_name"
                 name="client_name"
                 value={clientName}
                 onChange={(e) => setClientName(e.target.value)}
-                placeholder="Extraído del contenido del PDF"
+                placeholder="Nombre del cliente"
                 required
               />
             </div>
@@ -160,7 +144,7 @@ export default function UploadPage() {
                 type="email"
                 value={clientEmail}
                 onChange={(e) => setClientEmail(e.target.value)}
-                placeholder="Extraído del contenido del PDF"
+                placeholder="cliente@email.com"
               />
             </div>
 
@@ -171,7 +155,7 @@ export default function UploadPage() {
                 name="concept"
                 value={concept}
                 onChange={(e) => setConcept(e.target.value)}
-                placeholder="Extraído del contenido del PDF"
+                placeholder="Describe el servicio o producto"
                 required
               />
             </div>
@@ -186,7 +170,7 @@ export default function UploadPage() {
                 min="0"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder="Extraído del contenido del PDF"
+                placeholder="0.00"
                 required
               />
             </div>
