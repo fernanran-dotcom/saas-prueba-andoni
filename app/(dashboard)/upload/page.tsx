@@ -1,7 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { uploadQuotePdf } from "@/lib/quotes/actions";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Upload, FileText, Sparkles, AlertCircle } from "lucide-react";
+import { Upload, FileText, Sparkles, AlertCircle, Loader2 } from "lucide-react";
 
 export default function UploadPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -24,9 +23,10 @@ export default function UploadPage() {
   const [concept, setConcept] = useState("");
   const [amount, setAmount] = useState("");
   const [parsing, setParsing] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [extracted, setExtracted] = useState(false);
   const [error, setError] = useState("");
-  const formRef = useRef<HTMLFormElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
@@ -71,6 +71,41 @@ export default function UploadPage() {
     setParsing(false);
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    if (!selectedFile) return;
+
+    setSubmitting(true);
+    try {
+      const fd = new FormData();
+      fd.append("pdf", selectedFile);
+      fd.append("client_name", clientName);
+      fd.append("client_email", clientEmail);
+      fd.append("concept", concept);
+      fd.append("amount", amount);
+      fd.append("payment_status", paymentStatus);
+      if (paymentStatus === "Parcial") {
+        const paidInput = document.getElementById("paid_amount") as HTMLInputElement;
+        if (paidInput?.value) fd.append("paid_amount", paidInput.value);
+      }
+
+      const res = await fetch("/api/upload-quote", { method: "POST", body: fd });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Error al guardar el presupuesto");
+        setSubmitting(false);
+        return;
+      }
+
+      window.location.href = "/";
+    } catch {
+      setError("Error de conexión al guardar el presupuesto");
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-lg mx-auto">
       <div>
@@ -88,10 +123,11 @@ export default function UploadPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form ref={formRef} action={uploadQuotePdf} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="pdf">Archivo PDF</Label>
               <Input
+                ref={fileInputRef}
                 id="pdf"
                 name="pdf"
                 type="file"
@@ -223,9 +259,12 @@ export default function UploadPage() {
               </div>
             )}
 
-            <Button type="submit" className="w-full" disabled={!selectedFile || parsing}>
-              <Upload className="h-4 w-4 mr-2" />
-              Guardar presupuesto
+            <Button type="submit" className="w-full" disabled={!selectedFile || parsing || submitting}>
+              {submitting ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Guardando...</>
+              ) : (
+                <><Upload className="h-4 w-4 mr-2" />Guardar presupuesto</>
+              )}
             </Button>
           </form>
         </CardContent>
