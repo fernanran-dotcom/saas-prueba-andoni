@@ -100,8 +100,8 @@ export async function POST(request: Request) {
       }
     }
 
-    // Extract total
-    const totalMatch = text.match(/TOTAL\s*[:.]?\s*([\d.,]+)\s*€?/i);
+    // Extract total — match "TOTAL" at line start (not column header or SUB-TOTAL)
+    const totalMatch = text.match(/^\s*TOTAL\s*[:.]?\s*([\d.,]+)\s*€?/im);
     if (totalMatch) {
       const raw = totalMatch[1].replace(/\./g, "").replace(",", ".");
       const num = parseFloat(raw);
