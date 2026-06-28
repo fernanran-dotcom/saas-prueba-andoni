@@ -63,7 +63,11 @@ export async function POST(request: Request) {
           upsert: false,
         });
       if (uploadError) {
-        return NextResponse.json({ error: `Error al subir el PDF: ${uploadError.message}` }, { status: 400 });
+        return NextResponse.json({
+          error: uploadError.message === "Bucket not found"
+            ? "El bucket 'quote-pdfs' no existe en Supabase Storage. Créalo en Supabase Dashboard > Storage > New Bucket."
+            : `Error al subir el PDF: ${uploadError.message}`,
+        }, { status: 400 });
       }
 
       const { data: urlData } = supabase.storage
